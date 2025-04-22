@@ -82,17 +82,17 @@ CREATE TABLE permissions (
 CREATE TABLE role_permissions (
     role_id UUID REFERENCES roles(id),
     permission_id UUID REFERENCES permissions(id),
-    PRIMARY KEY (role_id, permission_id),
     active_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
-    inactive_at TIMESTAMP WITH TIME ZONE
+    inactive_at TIMESTAMP WITH TIME ZONE,
+    PRIMARY KEY (role_id, permission_id)
 );
 
 CREATE TABLE user_roles (
     user_id UUID REFERENCES users(id),
     role_id UUID REFERENCES roles(id),
-    PRIMARY KEY (user_id, role_id),
     active_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
-    inactive_at TIMESTAMP WITH TIME ZONE
+    inactive_at TIMESTAMP WITH TIME ZONE,
+    PRIMARY KEY (user_id, role_id)
 );
 
 CREATE TABLE activity_logs (
@@ -107,9 +107,9 @@ CREATE TABLE project_members (
     project_id UUID REFERENCES projects(id),
     user_id UUID REFERENCES users(id),
     role_id UUID REFERENCES roles(id),
-    PRIMARY KEY (project_id, user_id),
     active_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
-    inactive_at TIMESTAMP WITH TIME ZONE
+    inactive_at TIMESTAMP WITH TIME ZONE,
+    PRIMARY KEY (project_id, user_id)
 );
 
 CREATE TABLE groups (
@@ -124,9 +124,9 @@ CREATE TABLE groups (
 CREATE TABLE user_groups (
     user_id UUID REFERENCES users(id),
     group_id UUID REFERENCES groups(id),
-    PRIMARY KEY (user_id, group_id),
     active_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
-    inactive_at TIMESTAMP WITH TIME ZONE
+    inactive_at TIMESTAMP WITH TIME ZONE,
+    PRIMARY KEY (user_id, group_id)
 );
 
 CREATE TABLE api_keys (
