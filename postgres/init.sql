@@ -117,3 +117,15 @@ ALTER TABLE artifacts
 ALTER TABLE groups
     ADD COLUMN IF NOT EXISTS inactive_at TIMESTAMP WITH TIME ZONE,
     ADD COLUMN IF NOT EXISTS inactivated_by UUID REFERENCES users(id);
+
+CREATE TABLE api_keys (
+    id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+    user_id UUID REFERENCES users(id),
+    project_id UUID REFERENCES projects(id),
+    key_hash TEXT NOT NULL,
+    description TEXT,
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
+    last_used_at TIMESTAMP WITH TIME ZONE,
+    inactive_at TIMESTAMP WITH TIME ZONE,
+    inactivated_by UUID REFERENCES users(id)
+);
