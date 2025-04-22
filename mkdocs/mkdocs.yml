@@ -8,3 +8,16 @@ nav:
   - Database: docs/database.md
 theme:
   name: material
+plugins:
+  - search
+  - awesome-pages
+extra:
+  mermaid:
+    version: 10  # Enable built-in Mermaid support in MkDocs Material
+  generator: false  # Fix service-worker.js warning
+  remote_url: https://<GITHUB_USERNAME>:${@github.com">GITHUB_TOKEN}@github.com/<GITHUB_USERNAME>/<REPO_NAME>.git
+  - pymdownx.arithmatex
+  - pymdownx.superfences:
+      custom_fences:
+        - name: mermaid
+          class: mermaid
