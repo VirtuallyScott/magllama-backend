@@ -1,0 +1,108 @@
+{
+  "info": {
+    "name": "magllama API CI Collection",
+    "_postman_id": "00000000-0000-0000-0000-000000000000",
+    "description": "Postman collection for CI testing of magllama API using Newman.",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "item": [
+    {
+      "name": "Authenticate (Login)",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/x-www-form-urlencoded"
+          }
+        ],
+        "body": {
+          "mode": "urlencoded",
+          "urlencoded": [
+            {
+              "key": "username",
+              "value": "{{ci_username}}",
+              "type": "text"
+            },
+            {
+              "key": "password",
+              "value": "{{ci_password}}",
+              "type": "text"
+            }
+          ]
+        },
+        "url": {
+          "raw": "{{base_url}}/auth/login",
+          "host": [
+            "{{base_url}}"
+          ],
+          "path": [
+            "auth",
+            "login"
+          ]
+        }
+      },
+      "response": []
+    },
+    {
+      "name": "List Projects",
+      "request": {
+        "method": "GET",
+        "header": [
+          {
+            "key": "X-API-Key",
+            "value": "{{auth_token}}"
+          }
+        ],
+        "url": {
+          "raw": "{{base_url}}/projects?user_id={{ci_user_id}}",
+          "host": [
+            "{{base_url}}"
+          ],
+          "path": [
+            "projects"
+          ],
+          "query": [
+            {
+              "key": "user_id",
+              "value": "{{ci_user_id}}"
+            }
+          ]
+        }
+      },
+      "response": []
+    }
+  ],
+  "event": [
+    {
+      "listen": "prerequest",
+      "script": {
+        "exec": [],
+        "type": "text/javascript"
+      }
+    },
+    {
+      "listen": "test",
+      "script": {
+        "exec": [
+          "if (pm.response.code !== 200) {",
+          "    pm.environment.set('auth_token', '');",
+          "    pm.test('Response status is 200', function () {",
+          "        pm.response.to.have.status(200);",
+          "    });",
+          "} else {",
+          "    var jsonData = pm.response.json();",
+          "    if (jsonData.detail === 'Login successful') {",
+          "        // Normally token would be returned here, but placeholder",
+          "        pm.environment.set('auth_token', 'dummy-token-for-ci');",
+          "    }",
+          "    pm.test('Login successful', function () {",
+          "        pm.expect(jsonData.detail).to.eql('Login successful');",
+          "    });",
+          "}"
+        ],
+        "type": "text/javascript"
+      }
+    }
+  ]
+}
