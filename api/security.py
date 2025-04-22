@@ -1,5 +1,5 @@
 import asyncpg
-from fastapi import Depends, HTTPException, status, APIRouter, Response, Header
+from fastapi import Depends, HTTPException, status, APIRouter, Response, Header, Query
 import uuid
 from pydantic import BaseModel
 from typing import Optional, List
@@ -8,12 +8,27 @@ import hmac
 import secrets
 import hashlib
 from datetime import datetime, timezone
+import os
+from cryptography.fernet import Fernet, InvalidToken
+import base64
 
 from .main import get_db
 
 router = APIRouter()
 
 pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
+
+# Secret encryption setup
+SECRET_ENCRYPTION_KEY = os.environ.get("SECRET_ENCRYPTION_KEY")
+if not SECRET_ENCRYPTION_KEY:
+    raise RuntimeError("SECRET_ENCRYPTION_KEY must be set in environment")
+fernet = Fernet(SECRET_ENCRYPTION_KEY.encode())
+
+def encrypt_secret(plaintext: str) -> bytes:
+    return fernet.encrypt(plaintext.encode())
+
+def decrypt_secret(ciphertext: bytes) -> str:
+    return fernet.decrypt(ciphertext).decode()
 
 class Role(BaseModel):
     id: Optional[uuid.UUID]
@@ -33,6 +48,29 @@ class APIKeyOut(BaseModel):
     inactive_at: Optional[datetime]
     project_id: Optional[uuid.UUID]
     user_id: Optional[uuid.UUID]
+
+class SecretIn(BaseModel):
+    name: str
+    value: str
+    project_id: Optional[uuid.UUID] = None
+    type: Optional[str] = "user"
+    description: Optional[str] = None
+    expires_at: Optional[datetime] = None
+    metadata: Optional[dict] = {}
+
+class SecretOut(BaseModel):
+    id: uuid.UUID
+    name: str
+    project_id: Optional[uuid.UUID]
+    user_id: Optional[uuid.UUID]
+    created_at: datetime
+    updated_at: Optional[datetime]
+    rotated_at: Optional[datetime]
+    revoked_at: Optional[datetime]
+    expires_at: Optional[datetime]
+    description: Optional[str]
+    type: Optional[str]
+    metadata: Optional[dict]
 
 @router.post("/roles", response_model=Role)
 async def create_role(role: Role, db=Depends(get_db)):
@@ -226,3 +264,168 @@ async def get_current_user_from_api_key(x_api_key: str = Header(None), db=Depend
             datetime.now(timezone.utc), row["id"]
         )
         return row
+
+@router.post("/secrets", response_model=SecretOut, status_code=201)
+async def create_secret(
+    secret: SecretIn,
+    user_id: uuid.UUID = Query(...),
+    db=Depends(get_db)
+):
+    # User can create their own secrets, or must have permission for project secrets
+    if secret.project_id:
+        await check_permission(user_id, "create_project_secret", db)
+        await check_project_access(user_id, secret.project_id, db)
+    else:
+        await check_permission(user_id, "create_user_secret", db)
+    value_enc = encrypt_secret(secret.value)
+    async with db.acquire() as conn:
+        row = await conn.fetchrow(
+            """
+            INSERT INTO secrets (name, value_enc, user_id, project_id, created_by, description, type, expires_at, metadata)
+            VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)
+            RETURNING id, name, project_id, user_id, created_at, updated_at, rotated_at, revoked_at, expires_at, description, type, metadata
+            """,
+            secret.name, value_enc, user_id if not secret.project_id else None, secret.project_id, user_id,
+            secret.description, secret.type, secret.expires_at, secret.metadata
+        )
+        await log_activity(user_id, "create_secret", {"secret_id": str(row["id"]), "name": secret.name}, db)
+        return dict(row)
+
+@router.get("/secrets/{secret_id}", response_model=SecretOut)
+async def get_secret(secret_id: uuid.UUID, user_id: uuid.UUID = Query(...), db=Depends(get_db)):
+    async with db.acquire() as conn:
+        row = await conn.fetchrow("SELECT * FROM secrets WHERE id = $1", secret_id)
+        if not row:
+            raise HTTPException(status_code=404, detail="Secret not found")
+        # Access control: user must own or have project access
+        if row["user_id"] == user_id:
+            pass
+        elif row["project_id"]:
+            await check_project_access(user_id, row["project_id"], db)
+        else:
+            raise HTTPException(status_code=403, detail="Access denied")
+        # Decrypt secret value
+        try:
+            value = decrypt_secret(row["value_enc"])
+        except InvalidToken:
+            raise HTTPException(status_code=500, detail="Secret decryption failed")
+        await log_activity(user_id, "get_secret", {"secret_id": str(secret_id)}, db)
+        # Do NOT return the secret value in the API unless explicitly requested and authorized
+        return {k: row[k] for k in SecretOut.__fields__}
+
+@router.post("/secrets/{secret_id}/reveal")
+async def reveal_secret(secret_id: uuid.UUID, user_id: uuid.UUID = Query(...), db=Depends(get_db)):
+    async with db.acquire() as conn:
+        row = await conn.fetchrow("SELECT * FROM secrets WHERE id = $1", secret_id)
+        if not row:
+            raise HTTPException(status_code=404, detail="Secret not found")
+        # Access control as above
+        if row["user_id"] == user_id:
+            pass
+        elif row["project_id"]:
+            await check_project_access(user_id, row["project_id"], db)
+        else:
+            raise HTTPException(status_code=403, detail="Access denied")
+        # Only allow if user has explicit permission
+        await check_permission(user_id, "reveal_secret", db)
+        value = decrypt_secret(row["value_enc"])
+        await log_activity(user_id, "reveal_secret", {"secret_id": str(secret_id)}, db)
+        return {"value": value}
+
+@router.put("/secrets/{secret_id}", response_model=SecretOut)
+async def update_secret(secret_id: uuid.UUID, secret: SecretIn, user_id: uuid.UUID = Query(...), db=Depends(get_db)):
+    async with db.acquire() as conn:
+        row = await conn.fetchrow("SELECT * FROM secrets WHERE id = $1", secret_id)
+        if not row:
+            raise HTTPException(status_code=404, detail="Secret not found")
+        # Access control: user must own or have project access
+        if row["user_id"] == user_id:
+            pass
+        elif row["project_id"]:
+            await check_project_access(user_id, row["project_id"], db)
+        else:
+            raise HTTPException(status_code=403, detail="Access denied")
+        # Permissions
+        if secret.project_id:
+            await check_permission(user_id, "update_project_secret", db)
+        else:
+            await check_permission(user_id, "update_user_secret", db)
+        value_enc = encrypt_secret(secret.value)
+        now = datetime.now(timezone.utc)
+        await conn.execute(
+            """
+            UPDATE secrets SET
+                name = $1,
+                value_enc = $2,
+                description = $3,
+                type = $4,
+                expires_at = $5,
+                metadata = $6,
+                updated_at = $7,
+                updated_by = $8
+            WHERE id = $9
+            """,
+            secret.name, value_enc, secret.description, secret.type, secret.expires_at, secret.metadata,
+            now, user_id, secret_id
+        )
+        updated_row = await conn.fetchrow("SELECT * FROM secrets WHERE id = $1", secret_id)
+        await log_activity(user_id, "update_secret", {"secret_id": str(secret_id)}, db)
+        return dict(updated_row)
+
+@router.post("/secrets/{secret_id}/rotate", response_model=SecretOut)
+async def rotate_secret(secret_id: uuid.UUID, new_value: str, user_id: uuid.UUID = Query(...), db=Depends(get_db)):
+    async with db.acquire() as conn:
+        row = await conn.fetchrow("SELECT * FROM secrets WHERE id = $1", secret_id)
+        if not row:
+            raise HTTPException(status_code=404, detail="Secret not found")
+        # Access control
+        if row["user_id"] == user_id:
+            pass
+        elif row["project_id"]:
+            await check_project_access(user_id, row["project_id"], db)
+        else:
+            raise HTTPException(status_code=403, detail="Access denied")
+        await check_permission(user_id, "rotate_secret", db)
+        value_enc = encrypt_secret(new_value)
+        now = datetime.now(timezone.utc)
+        await conn.execute(
+            """
+            UPDATE secrets SET
+                value_enc = $1,
+                rotated_at = $2,
+                updated_at = $2,
+                updated_by = $3
+            WHERE id = $4
+            """,
+            value_enc, now, user_id, secret_id
+        )
+        updated_row = await conn.fetchrow("SELECT * FROM secrets WHERE id = $1", secret_id)
+        await log_activity(user_id, "rotate_secret", {"secret_id": str(secret_id)}, db)
+        return dict(updated_row)
+
+@router.post("/secrets/{secret_id}/revoke")
+async def revoke_secret(secret_id: uuid.UUID, user_id: uuid.UUID = Query(...), db=Depends(get_db)):
+    async with db.acquire() as conn:
+        row = await conn.fetchrow("SELECT * FROM secrets WHERE id = $1", secret_id)
+        if not row:
+            raise HTTPException(status_code=404, detail="Secret not found")
+        # Access control
+        if row["user_id"] == user_id:
+            pass
+        elif row["project_id"]:
+            await check_project_access(user_id, row["project_id"], db)
+        else:
+            raise HTTPException(status_code=403, detail="Access denied")
+        await check_permission(user_id, "revoke_secret", db)
+        now = datetime.now(timezone.utc)
+        await conn.execute(
+            """
+            UPDATE secrets SET
+                revoked_at = $1,
+                revoked_by = $2
+            WHERE id = $3
+            """,
+            now, user_id, secret_id
+        )
+        await log_activity(user_id, "revoke_secret", {"secret_id": str(secret_id)}, db)
+    return {"detail": "Secret revoked"}

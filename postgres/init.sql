@@ -129,3 +129,22 @@ CREATE TABLE api_keys (
     inactive_at TIMESTAMP WITH TIME ZONE,
     inactivated_by UUID REFERENCES users(id)
 );
+
+CREATE TABLE secrets (
+    id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+    name TEXT NOT NULL,
+    value_enc BYTEA NOT NULL,
+    user_id UUID REFERENCES users(id),
+    project_id UUID REFERENCES projects(id),
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
+    created_by UUID REFERENCES users(id),
+    updated_at TIMESTAMP WITH TIME ZONE,
+    updated_by UUID REFERENCES users(id),
+    rotated_at TIMESTAMP WITH TIME ZONE,
+    revoked_at TIMESTAMP WITH TIME ZONE,
+    revoked_by UUID REFERENCES users(id),
+    expires_at TIMESTAMP WITH TIME ZONE,
+    description TEXT,
+    type TEXT, -- e.g. "pipeline", "user", "api", etc.
+    metadata JSONB DEFAULT '{}'::jsonb
+);

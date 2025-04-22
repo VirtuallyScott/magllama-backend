@@ -7,3 +7,4 @@ python-ldap                # For LDAP/OpenLDAP/AD
 python3-saml               # For SAML
 authlib                    # For OAuth2/OpenID Connect
 passlib[bcrypt]
+cryptography

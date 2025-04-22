@@ -6,6 +6,7 @@ This API is designed to support pluggable external Identity Providers (IdPs) suc
 
 - The `users` table includes `external_id` and `idp_provider` columns to store references to external identities.
 - Added `api_keys` table for secure API key management with user-level and project-level keys.
+- Added `secrets` table for secure encrypted secrets management with full lifecycle tracking.
 
 ## Authentication Endpoints
 
@@ -14,6 +15,24 @@ The following placeholder endpoints are available for future implementation of I
 - `POST /auth/oauth2` - OAuth2 login with token validation.
 - `POST /auth/ldap` - LDAP login with username and password.
 - `POST /auth/saml` - SAML login with SAML response parsing.
+
+## Secrets Management Endpoints
+
+- `POST /secrets` - Create a new secret (user or project level).
+- `GET /secrets/{secret_id}` - Retrieve secret metadata (value not included).
+- `POST /secrets/{secret_id}/reveal` - Retrieve decrypted secret value (requires explicit permission).
+- `PUT /secrets/{secret_id}` - Update secret (including rotation).
+- `POST /secrets/{secret_id}/rotate` - Rotate secret value.
+- `POST /secrets/{secret_id}/revoke` - Revoke secret.
+
+## Secrets Security Practices
+
+- Secrets are encrypted at rest using Fernet symmetric encryption.
+- Encryption key is loaded from environment variable `SECRET_ENCRYPTION_KEY`.
+- Access control enforced via RBAC and project membership.
+- Audit logging for all secret operations.
+- Secret values never returned unless explicitly requested and authorized.
+- Support for expiration, rotation, revocation, and metadata.
 
 ## API Key Management Endpoints
 
@@ -71,10 +90,13 @@ environment:
   - LDAP_BIND_DN=
   - LDAP_BIND_PASSWORD=
   - SAML_METADATA_URL=
+  - SECRET_ENCRYPTION_KEY=  # Must be set to a base64-encoded Fernet key
 ```
 
 ## Next Steps
 
 Implement the authentication logic in the placeholder endpoints in `security.py` to integrate with your chosen IdPs.
+
+Implement secret management client logic to securely store and rotate secrets.
 
 ````
