@@ -24,3 +24,6 @@ async def root():
 
 app.include_router(projects_router)
 app.include_router(security_router)
+
+async def get_db():
+    return app.state.db
