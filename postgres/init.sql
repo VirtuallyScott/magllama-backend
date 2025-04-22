@@ -7,7 +7,8 @@ CREATE TABLE users (
     email TEXT NOT NULL UNIQUE,
     created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
     preferences JSONB DEFAULT '{}'::jsonb,
-    feature_flags JSONB DEFAULT '{}'::jsonb
+    feature_flags JSONB DEFAULT '{}'::jsonb,
+    password_hash TEXT
 );
 
 CREATE TABLE scans (

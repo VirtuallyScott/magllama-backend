@@ -3,10 +3,14 @@ from fastapi import Depends, HTTPException, status, APIRouter
 import uuid
 from pydantic import BaseModel
 from typing import Optional, List
+from passlib.context import CryptContext
+import hmac
 
 from .main import get_db
 
 router = APIRouter()
+
+pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
 
 class Role(BaseModel):
     id: Optional[uuid.UUID]
@@ -94,6 +98,19 @@ async def log_activity(user_id: uuid.UUID, action: str, details: dict, db):
         "INSERT INTO activity_logs (user_id, action, details) VALUES ($1, $2, $3)",
         user_id, action, details
     )
+
+@router.post("/auth/login")
+async def login(username: str, password: str, db=Depends(get_db)):
+    # Fetch user by username or email
+    user = await db.fetchrow("SELECT * FROM users WHERE username=$1 OR email=$1", username)
+    # Always do hash check to avoid timing attacks
+    if not user or not pwd_context.verify(password, user["password_hash"] or ""):
+        await log_activity(user["id"] if user else None, "login_failed", {"username": username}, db)
+        raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Invalid username or password")
+    # TODO: Check for lockout, MFA, etc.
+    # Issue token/session here (not implemented)
+    await log_activity(user["id"], "login_success", {}, db)
+    return {"detail": "Login successful"}
 
 # Placeholder for OAuth2 login
 @router.post("/auth/oauth2")

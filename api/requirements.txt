@@ -6,3 +6,4 @@ python-jose[cryptography]  # For JWT/OAuth2/OpenID Connect
 python-ldap                # For LDAP/OpenLDAP/AD
 python3-saml               # For SAML
 authlib                    # For OAuth2/OpenID Connect
+passlib[bcrypt]
