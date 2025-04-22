@@ -20,6 +20,13 @@ class ProjectMember(BaseModel):
     user_id: uuid.UUID
     role_id: uuid.UUID
 
+# ScanType models
+class ScanType(BaseModel):
+    id: Optional[uuid.UUID]
+    name: str
+    description: Optional[str]
+    created_at: Optional[datetime] = None
+
 @router.post("/projects", response_model=Project)
 async def create_project(project: Project, user_id: uuid.UUID = Query(...), db=Depends(get_db)):
     await check_permission(user_id, "create_project", db)
@@ -77,3 +84,58 @@ async def get_project_members(project_id: uuid.UUID, user_id: uuid.UUID = Query(
             project_id
         )
         return [ProjectMember(project_id=row['project_id'], user_id=row['user_id'], role_id=row['role_id']) for row in rows]
+
+# --- Scan Types CRUD Endpoints ---
+
+@router.post("/scan_types", response_model=ScanType)
+async def create_scan_type(scan_type: ScanType, user_id: uuid.UUID = Query(...), db=Depends(get_db)):
+    await check_permission(user_id, "create_scan_type", db)
+    async with db.acquire() as conn:
+        row = await conn.fetchrow(
+            "INSERT INTO scan_types (name, description) VALUES ($1, $2) RETURNING id, name, description, created_at",
+            scan_type.name, scan_type.description
+        )
+        await log_activity(user_id, "create_scan_type", {"scan_type": scan_type.dict()}, db)
+        return dict(row)
+
+@router.get("/scan_types", response_model=List[ScanType])
+async def list_scan_types(user_id: uuid.UUID = Query(...), db=Depends(get_db)):
+    await check_permission(user_id, "list_scan_types", db)
+    async with db.acquire() as conn:
+        rows = await conn.fetch("SELECT id, name, description, created_at FROM scan_types")
+        return [dict(row) for row in rows]
+
+@router.get("/scan_types/{scan_type_id}", response_model=ScanType)
+async def get_scan_type(scan_type_id: uuid.UUID, user_id: uuid.UUID = Query(...), db=Depends(get_db)):
+    await check_permission(user_id, "get_scan_type", db)
+    async with db.acquire() as conn:
+        row = await conn.fetchrow(
+            "SELECT id, name, description, created_at FROM scan_types WHERE id = $1",
+            scan_type_id
+        )
+        if not row:
+            return {"detail": "Scan type not found"}
+        return dict(row)
+
+@router.put("/scan_types/{scan_type_id}", response_model=ScanType)
+async def update_scan_type(scan_type_id: uuid.UUID, scan_type: ScanType, user_id: uuid.UUID = Query(...), db=Depends(get_db)):
+    await check_permission(user_id, "update_scan_type", db)
+    async with db.acquire() as conn:
+        row = await conn.fetchrow(
+            "UPDATE scan_types SET name = $1, description = $2 WHERE id = $3 RETURNING id, name, description, created_at",
+            scan_type.name, scan_type.description, scan_type_id
+        )
+        await log_activity(user_id, "update_scan_type", {"scan_type_id": str(scan_type_id), "scan_type": scan_type.dict()}, db)
+        if not row:
+            return {"detail": "Scan type not found"}
+        return dict(row)
+
+@router.delete("/scan_types/{scan_type_id}")
+async def delete_scan_type(scan_type_id: uuid.UUID, user_id: uuid.UUID = Query(...), db=Depends(get_db)):
+    await check_permission(user_id, "delete_scan_type", db)
+    async with db.acquire() as conn:
+        result = await conn.execute("DELETE FROM scan_types WHERE id = $1", scan_type_id)
+        await log_activity(user_id, "delete_scan_type", {"scan_type_id": str(scan_type_id)}, db)
+        if result == "DELETE 0":
+            return {"detail": "Scan type not found"}
+    return {"detail": "Scan type deleted"}
