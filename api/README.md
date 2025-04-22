@@ -1,4 +1,20 @@
-# Identity Provider Integration Readiness
+# magllama Project
+
+[https://www.magllama.io/](https://www.magllama.io/)
+
+This API is part of the [magllama](https://www.magllama.io/) project, a centralized repository for managing and analyzing security scan metadata from popular tools like Trivy, Checkov, Snyk, and more.
+
+---
+
+## About magllama
+
+magllama is an open-source metadata repository designed to centralize and normalize scan data across your entire ecosystem—including code, containers, and filesystems.
+
+- **Project website:** [https://www.magllama.io/](https://www.magllama.io/)
+- **GitHub:** [https://github.com/codeSnapped-LLC/magllama](https://github.com/codeSnapped-LLC/magllama)
+- **Docs:** See this repository and [https://www.magllama.io/](https://www.magllama.io/) for more.
+
+## Identity Provider Integration Readiness
 
 This API is designed to support pluggable external Identity Providers (IdPs) such as LDAP/Active Directory, OpenLDAP, OAuth2, SAML, and OpenID Connect.
 
