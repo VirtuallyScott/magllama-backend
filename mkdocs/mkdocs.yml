@@ -1,21 +1,28 @@
 site_name: magllama Documentation
+
 nav:
-  - Getting Started: docs/getting-started.md
-  - Building: docs/building.md
-  - Deploying: docs/deploying.md
-  - Configuring Authentication: docs/configuring-authentication.md
-  - API: docs/api.md
-  - Database: docs/database.md
+  - Getting Started: getting-started.md
+  - Building: building.md
+  - Deploying: deploying.md
+  - Configuring Authentication: configuring-authentication.md
+  - API: api.md
+  - Database: database.md
+
+docs_dir: docs
+
 theme:
   name: material
+
 plugins:
   - search
   - awesome-pages
+
 extra:
   mermaid:
     version: 10  # Enable built-in Mermaid support in MkDocs Material
   generator: false  # Fix service-worker.js warning
-  remote_url: https://<GITHUB_USERNAME>:${@github.com">GITHUB_TOKEN}@github.com/<GITHUB_USERNAME>/<REPO_NAME>.git
+
+markdown_extensions:
   - pymdownx.arithmatex
   - pymdownx.superfences:
       custom_fences:
