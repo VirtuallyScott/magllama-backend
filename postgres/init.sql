@@ -1,4 +1,3 @@
-
 CREATE EXTENSION IF NOT EXISTS "uuid-ossp";
 
 CREATE TABLE users (
@@ -8,69 +7,22 @@ CREATE TABLE users (
     created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
     preferences JSONB DEFAULT '{}'::jsonb,
     feature_flags JSONB DEFAULT '{}'::jsonb,
-    password_hash TEXT
+    password_hash TEXT,
+    external_id TEXT,
+    idp_provider TEXT,
+    active_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
+    inactive_at TIMESTAMP WITH TIME ZONE,
+    inactivated_by UUID REFERENCES users(id)
 );
--- Scan Types table
+
 CREATE TABLE scan_types (
     id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
     name TEXT NOT NULL UNIQUE,
     description TEXT,
-    created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
-);
-
-CREATE TABLE scans (
-    id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
-    user_id UUID REFERENCES users(id),
-    scan_type TEXT NOT NULL,
-    scan_result JSONB,
     created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
-    project_id UUID REFERENCES projects(id)
-);
-
-CREATE TABLE artifacts (
-    id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
-    scan_id UUID REFERENCES scans(id),
-    artifact_name TEXT NOT NULL,
-    metadata JSONB,
-    created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
-    project_id UUID REFERENCES projects(id)
-);
-
--- Roles table
-CREATE TABLE roles (
-    id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
-    name TEXT NOT NULL UNIQUE,
-    description TEXT
-);
-
--- Permissions table
-CREATE TABLE permissions (
-    id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
-    name TEXT NOT NULL UNIQUE,
-    description TEXT
-);
-
--- Role-Permission mapping
-CREATE TABLE role_permissions (
-    role_id UUID REFERENCES roles(id),
-    permission_id UUID REFERENCES permissions(id),
-    PRIMARY KEY (role_id, permission_id)
-);
-
--- User-Role mapping
-CREATE TABLE user_roles (
-    user_id UUID REFERENCES users(id),
-    role_id UUID REFERENCES roles(id),
-    PRIMARY KEY (user_id, role_id)
-);
-
--- Activity log
-CREATE TABLE activity_logs (
-    id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
-    user_id UUID REFERENCES users(id),
-    action TEXT NOT NULL,
-    details JSONB,
-    timestamp TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
+    active_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
+    inactive_at TIMESTAMP WITH TIME ZONE,
+    inactivated_by UUID REFERENCES users(id)
 );
 
 CREATE TABLE projects (
@@ -79,51 +31,103 @@ CREATE TABLE projects (
     parent_id UUID REFERENCES projects(id),
     description TEXT,
     created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
-    dashboard_config JSONB DEFAULT '{}'::jsonb
+    dashboard_config JSONB DEFAULT '{}'::jsonb,
+    active_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
+    inactive_at TIMESTAMP WITH TIME ZONE,
+    inactivated_by UUID REFERENCES users(id)
+);
+
+CREATE TABLE scans (
+    id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+    user_id UUID REFERENCES users(id),
+    scan_type TEXT NOT NULL,
+    scan_result JSONB,
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
+    project_id UUID REFERENCES projects(id),
+    active_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
+    inactive_at TIMESTAMP WITH TIME ZONE,
+    inactivated_by UUID REFERENCES users(id)
+);
+
+CREATE TABLE artifacts (
+    id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+    scan_id UUID REFERENCES scans(id),
+    artifact_name TEXT NOT NULL,
+    metadata JSONB,
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
+    project_id UUID REFERENCES projects(id),
+    active_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
+    inactive_at TIMESTAMP WITH TIME ZONE,
+    inactivated_by UUID REFERENCES users(id)
+);
+
+CREATE TABLE roles (
+    id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+    name TEXT NOT NULL UNIQUE,
+    description TEXT,
+    active_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
+    inactive_at TIMESTAMP WITH TIME ZONE,
+    inactivated_by UUID REFERENCES users(id)
+);
+
+CREATE TABLE permissions (
+    id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+    name TEXT NOT NULL UNIQUE,
+    description TEXT,
+    active_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
+    inactive_at TIMESTAMP WITH TIME ZONE,
+    inactivated_by UUID REFERENCES users(id)
+);
+
+CREATE TABLE role_permissions (
+    role_id UUID REFERENCES roles(id),
+    permission_id UUID REFERENCES permissions(id),
+    PRIMARY KEY (role_id, permission_id),
+    active_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
+    inactive_at TIMESTAMP WITH TIME ZONE
+);
+
+CREATE TABLE user_roles (
+    user_id UUID REFERENCES users(id),
+    role_id UUID REFERENCES roles(id),
+    PRIMARY KEY (user_id, role_id),
+    active_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
+    inactive_at TIMESTAMP WITH TIME ZONE
+);
+
+CREATE TABLE activity_logs (
+    id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+    user_id UUID REFERENCES users(id),
+    action TEXT NOT NULL,
+    details JSONB,
+    timestamp TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
 );
 
 CREATE TABLE project_members (
     project_id UUID REFERENCES projects(id),
     user_id UUID REFERENCES users(id),
     role_id UUID REFERENCES roles(id),
-    PRIMARY KEY (project_id, user_id)
+    PRIMARY KEY (project_id, user_id),
+    active_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
+    inactive_at TIMESTAMP WITH TIME ZONE
 );
 
 CREATE TABLE groups (
     id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
     name TEXT NOT NULL UNIQUE,
-    description TEXT
+    description TEXT,
+    active_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
+    inactive_at TIMESTAMP WITH TIME ZONE,
+    inactivated_by UUID REFERENCES users(id)
 );
 
 CREATE TABLE user_groups (
     user_id UUID REFERENCES users(id),
     group_id UUID REFERENCES groups(id),
-    PRIMARY KEY (user_id, group_id)
+    PRIMARY KEY (user_id, group_id),
+    active_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
+    inactive_at TIMESTAMP WITH TIME ZONE
 );
-
-ALTER TABLE users
-    ADD COLUMN IF NOT EXISTS external_id TEXT,
-    ADD COLUMN IF NOT EXISTS idp_provider TEXT;
-
-ALTER TABLE users
-    ADD COLUMN IF NOT EXISTS inactive_at TIMESTAMP WITH TIME ZONE,
-    ADD COLUMN IF NOT EXISTS inactivated_by UUID REFERENCES users(id);
-
-ALTER TABLE projects
-    ADD COLUMN IF NOT EXISTS inactive_at TIMESTAMP WITH TIME ZONE,
-    ADD COLUMN IF NOT EXISTS inactivated_by UUID REFERENCES users(id);
-
-ALTER TABLE scans
-    ADD COLUMN IF NOT EXISTS inactive_at TIMESTAMP WITH TIME ZONE,
-    ADD COLUMN IF NOT EXISTS inactivated_by UUID REFERENCES users(id);
-
-ALTER TABLE artifacts
-    ADD COLUMN IF NOT EXISTS inactive_at TIMESTAMP WITH TIME ZONE,
-    ADD COLUMN IF NOT EXISTS inactivated_by UUID REFERENCES users(id);
-
-ALTER TABLE groups
-    ADD COLUMN IF NOT EXISTS inactive_at TIMESTAMP WITH TIME ZONE,
-    ADD COLUMN IF NOT EXISTS inactivated_by UUID REFERENCES users(id);
 
 CREATE TABLE api_keys (
     id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
@@ -133,6 +137,7 @@ CREATE TABLE api_keys (
     description TEXT,
     created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
     last_used_at TIMESTAMP WITH TIME ZONE,
+    active_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
     inactive_at TIMESTAMP WITH TIME ZONE,
     inactivated_by UUID REFERENCES users(id)
 );
@@ -153,5 +158,8 @@ CREATE TABLE secrets (
     expires_at TIMESTAMP WITH TIME ZONE,
     description TEXT,
     type TEXT, -- e.g. "pipeline", "user", "api", etc.
-    metadata JSONB DEFAULT '{}'::jsonb
+    metadata JSONB DEFAULT '{}'::jsonb,
+    active_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
+    inactive_at TIMESTAMP WITH TIME ZONE,
+    inactivated_by UUID REFERENCES users(id)
 );
