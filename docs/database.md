@@ -7,6 +7,7 @@ The magllama project uses PostgreSQL as its primary database.
 - All tables include `active_at` and `inactive_at` timestamp columns for soft-deletion and auditability.
 - Records are never physically deleted; instead, they are marked as inactive by setting `inactive_at`.
 - The `inactivated_by` column (where present) records the user who performed the inactivation.
+- **Groups**: Users can belong to groups, and groups can be assigned to projects with roles, enabling group-based project permissions.
 
 ## CRUD Operations
 

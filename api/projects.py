@@ -20,6 +20,20 @@ class ProjectMember(BaseModel):
     user_id: uuid.UUID
     role_id: uuid.UUID
 
+class Group(BaseModel):
+    id: Optional[uuid.UUID]
+    name: str
+    description: Optional[str]
+
+class UserGroup(BaseModel):
+    user_id: uuid.UUID
+    group_id: uuid.UUID
+
+class ProjectGroupMember(BaseModel):
+    project_id: uuid.UUID
+    group_id: uuid.UUID
+    role_id: uuid.UUID
+
 # ScanType models
 class ScanType(BaseModel):
     id: Optional[uuid.UUID]
@@ -84,6 +98,68 @@ async def get_project_members(project_id: uuid.UUID, user_id: uuid.UUID = Query(
             project_id
         )
         return [ProjectMember(project_id=row['project_id'], user_id=row['user_id'], role_id=row['role_id']) for row in rows]
+
+# --- Group Membership Endpoints ---
+
+@router.post("/groups", response_model=Group)
+async def create_group(group: Group, user_id: uuid.UUID = Query(...), db=Depends(get_db)):
+    await check_permission(user_id, "create_group", db)
+    async with db.acquire() as conn:
+        row = await conn.fetchrow(
+            "INSERT INTO groups (name, description) VALUES ($1, $2) RETURNING id, name, description",
+            group.name, group.description
+        )
+        await log_activity(user_id, "create_group", {"group": group.dict()}, db)
+        return dict(row)
+
+@router.get("/groups", response_model=List[Group])
+async def list_groups(user_id: uuid.UUID = Query(...), db=Depends(get_db)):
+    await check_permission(user_id, "list_groups", db)
+    async with db.acquire() as conn:
+        rows = await conn.fetch("SELECT id, name, description FROM groups")
+        return [dict(row) for row in rows]
+
+@router.post("/user_groups", response_model=UserGroup)
+async def add_user_to_group(user_group: UserGroup, user_id: uuid.UUID = Query(...), db=Depends(get_db)):
+    await check_permission(user_id, "add_user_to_group", db)
+    async with db.acquire() as conn:
+        await conn.execute(
+            "INSERT INTO user_groups (user_id, group_id) VALUES ($1, $2) ON CONFLICT DO NOTHING",
+            user_group.user_id, user_group.group_id
+        )
+        await log_activity(user_id, "add_user_to_group", {"user_group": user_group.dict()}, db)
+        return user_group
+
+@router.get("/user_groups/{user_id}", response_model=List[UserGroup])
+async def get_user_groups(user_id: uuid.UUID, db=Depends(get_db)):
+    async with db.acquire() as conn:
+        rows = await conn.fetch(
+            "SELECT user_id, group_id FROM user_groups WHERE user_id = $1",
+            user_id
+        )
+        return [UserGroup(user_id=row['user_id'], group_id=row['group_id']) for row in rows]
+
+@router.post("/project_group_members", response_model=ProjectGroupMember)
+async def add_project_group_member(member: ProjectGroupMember, user_id: uuid.UUID = Query(...), db=Depends(get_db)):
+    await check_permission(user_id, "assign_project_group_role", db)
+    # Optionally: check_project_access for the project
+    async with db.acquire() as conn:
+        await conn.execute(
+            "INSERT INTO project_group_members (project_id, group_id, role_id) VALUES ($1, $2, $3) ON CONFLICT DO NOTHING",
+            member.project_id, member.group_id, member.role_id
+        )
+        await log_activity(user_id, "add_project_group_member", {"member": member.dict()}, db)
+        return member
+
+@router.get("/project_group_members/{project_id}", response_model=List[ProjectGroupMember])
+async def get_project_group_members(project_id: uuid.UUID, user_id: uuid.UUID = Query(...), db=Depends(get_db)):
+    # Optionally: check_project_access for the project
+    async with db.acquire() as conn:
+        rows = await conn.fetch(
+            "SELECT project_id, group_id, role_id FROM project_group_members WHERE project_id = $1",
+            project_id
+        )
+        return [ProjectGroupMember(project_id=row['project_id'], group_id=row['group_id'], role_id=row['role_id']) for row in rows]
 
 # --- Scan Types CRUD Endpoints ---
 

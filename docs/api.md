@@ -50,6 +50,17 @@ The magllama API provides endpoints for managing users, projects, roles, permiss
 - `POST /permissions` — Create a new permission.
 - `GET /permissions` — List all permissions.
 
+### Groups and Group-based Project Permissions
+
+- `POST /groups` — Create a new group.
+- `GET /groups` — List all groups.
+- `POST /user_groups` — Add a user to a group.
+- `GET /user_groups/{user_id}` — List all groups for a user.
+- `POST /project_group_members` — Assign a group to a project with a specific role.
+- `GET /project_group_members/{project_id}` — List all group memberships for a project.
+
+Group membership can be used to grant project access and permissions to all users in a group.
+
 ## Security
 
 - All endpoints require authentication and appropriate permissions.

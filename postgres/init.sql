@@ -178,6 +178,20 @@ CREATE INDEX idx_user_groups_active ON user_groups (inactive_at);
 CREATE INDEX idx_user_groups_user_id ON user_groups (user_id);
 CREATE INDEX idx_user_groups_group_id ON user_groups (group_id);
 
+-- Project group permissions and membership
+CREATE TABLE project_group_members (
+    project_id UUID REFERENCES projects(id),
+    group_id UUID REFERENCES groups(id),
+    role_id UUID REFERENCES roles(id),
+    active_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
+    inactive_at TIMESTAMP WITH TIME ZONE,
+    PRIMARY KEY (project_id, group_id)
+);
+
+CREATE INDEX idx_project_group_members_active ON project_group_members (inactive_at);
+CREATE INDEX idx_project_group_members_project_id ON project_group_members (project_id);
+CREATE INDEX idx_project_group_members_group_id ON project_group_members (group_id);
+
 CREATE TABLE api_keys (
     id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
     user_id UUID REFERENCES users(id),

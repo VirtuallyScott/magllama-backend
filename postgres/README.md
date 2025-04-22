@@ -12,6 +12,7 @@ This directory contains the database schema and initialization scripts for the m
 - The `inactive_at` column records when the record was marked as inactive (soft-deleted).
 - The `inactivated_by` column (where present) records the user who performed the inactivation.
 - **Indices**: All major tables have indices on `inactive_at` and other frequently queried columns (such as foreign keys and unique fields) to improve query performance.
+- **Groups and Project Group Membership**: Users can be assigned to groups, and groups can be assigned to projects with roles, enabling group-based project permissions.
 
 ## CRUD Operations
 
