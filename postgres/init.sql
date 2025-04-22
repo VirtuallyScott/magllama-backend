@@ -70,7 +70,8 @@ CREATE TABLE projects (
     name TEXT NOT NULL UNIQUE,
     parent_id UUID REFERENCES projects(id),
     description TEXT,
-    created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
+    dashboard_config JSONB DEFAULT '{}'::jsonb
 );
 
 CREATE TABLE project_members (
