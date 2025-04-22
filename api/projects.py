@@ -2,6 +2,7 @@ from fastapi import APIRouter, Depends, Query
 from pydantic import BaseModel
 from typing import List, Optional
 import uuid
+from datetime import datetime, timezone
 
 from .main import get_db
 from .security import check_permission, check_project_access, log_activity
@@ -31,11 +32,25 @@ async def create_project(project: Project, user_id: uuid.UUID = Query(...), db=D
         return dict(row)
 
 @router.get("/projects", response_model=List[Project])
-async def list_projects(db=Depends(get_db)):
-    # No user_id param here, so no filtering or permission check
+async def list_projects(include_inactive: bool = False, db=Depends(get_db)):
+    query = "SELECT id, name, parent_id, description FROM projects"
+    if not include_inactive:
+        query += " WHERE inactive_at IS NULL"
     async with db.acquire() as conn:
-        rows = await conn.fetch("SELECT id, name, parent_id, description FROM projects")
+        rows = await conn.fetch(query)
         return [dict(row) for row in rows]
+
+@router.delete("/projects/{project_id}")
+async def deactivate_project(project_id: uuid.UUID, user_id: uuid.UUID = Query(...), db=Depends(get_db)):
+    await check_permission(user_id, "deactivate_project", db)
+    now = datetime.now(timezone.utc)
+    async with db.acquire() as conn:
+        await conn.execute(
+            "UPDATE projects SET inactive_at = $1, inactivated_by = $2 WHERE id = $3",
+            now, user_id, project_id
+        )
+        await log_activity(user_id, "deactivate_project", {"project_id": str(project_id)}, db)
+    return {"detail": "Project marked as inactive"}
 
 @router.post("/project_members", response_model=ProjectMember)
 async def add_project_member(member: ProjectMember, user_id: uuid.UUID = Query(...), db=Depends(get_db)):
