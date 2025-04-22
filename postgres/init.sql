@@ -5,7 +5,9 @@ CREATE TABLE users (
     id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
     username TEXT NOT NULL UNIQUE,
     email TEXT NOT NULL UNIQUE,
-    created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
+    preferences JSONB DEFAULT '{}'::jsonb,
+    feature_flags JSONB DEFAULT '{}'::jsonb
 );
 
 CREATE TABLE scans (
@@ -76,4 +78,16 @@ CREATE TABLE project_members (
     user_id UUID REFERENCES users(id),
     role_id UUID REFERENCES roles(id),
     PRIMARY KEY (project_id, user_id)
+);
+
+CREATE TABLE groups (
+    id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+    name TEXT NOT NULL UNIQUE,
+    description TEXT
+);
+
+CREATE TABLE user_groups (
+    user_id UUID REFERENCES users(id),
+    group_id UUID REFERENCES groups(id),
+    PRIMARY KEY (user_id, group_id)
 );
