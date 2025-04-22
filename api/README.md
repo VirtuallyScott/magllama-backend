@@ -49,6 +49,15 @@ The following placeholder endpoints are available for future implementation of I
 - Restrict HTTP methods to those defined by FastAPI routes.
 - Enable CORS only if necessary and restrict allowed origins.
 
+## SQL Query Parameterization
+
+- All SQL queries in this API use asyncpg's parameterized query style with placeholders (`$1`, `$2`, etc.).
+- No user input is ever directly interpolated or concatenated into SQL strings.
+- Dynamic SQL fragments are controlled internally and do not include user input directly.
+- This approach fully complies with the OWASP Query Parameterization Cheat Sheet.
+- Developers must continue to use parameterized queries for all future database interactions.
+- Periodic code reviews and static analysis are recommended to ensure ongoing compliance.
+
 ## Configuration
 
 Environment variables should be set to configure the IdP integrations, for example:
