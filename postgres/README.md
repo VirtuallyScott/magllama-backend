@@ -11,6 +11,7 @@ This directory contains the database schema and initialization scripts for the m
 - The `active_at` column records when the record became active.
 - The `inactive_at` column records when the record was marked as inactive (soft-deleted).
 - The `inactivated_by` column (where present) records the user who performed the inactivation.
+- **Indices**: All major tables have indices on `inactive_at` and other frequently queried columns (such as foreign keys and unique fields) to improve query performance.
 
 ## CRUD Operations
 
@@ -36,6 +37,24 @@ This directory contains the database schema and initialization scripts for the m
   ```sql
   UPDATE projects SET inactive_at = NOW(), inactivated_by = '<user_id>' WHERE id = '<project_id>';
   ```
+- **Preventing Physical Deletes:**  
+  There is no built-in PostgreSQL feature to prevent `DELETE` at the table level, but you can enforce this at the application level (never use `DELETE FROM ...` in your code).  
+  For extra safety, you can add a trigger to each table to raise an exception if a `DELETE` is attempted.  
+  Example trigger:
+  ```sql
+  CREATE OR REPLACE FUNCTION prevent_delete() RETURNS trigger AS $$
+  BEGIN
+    RAISE EXCEPTION 'Physical DELETEs are not allowed. Use soft-delete (inactive_at) instead.';
+    RETURN NULL;
+  END;
+  $$ LANGUAGE plpgsql;
+
+  -- Add to a table, e.g. projects:
+  CREATE TRIGGER projects_no_delete
+    BEFORE DELETE ON projects
+    FOR EACH ROW EXECUTE FUNCTION prevent_delete();
+  ```
+  Repeat for each table as needed.
 
 ### Reactivation
 
@@ -63,3 +82,4 @@ This directory contains the database schema and initialization scripts for the m
 - This approach ensures a full audit trail and supports regulatory compliance.
 - All application-level "delete" operations should use this soft-delete pattern.
 - Never use `DELETE FROM ...` in application code.
+- For extra safety, you can add a trigger to each table to prevent physical deletes (see above).
