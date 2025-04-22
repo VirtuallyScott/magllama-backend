@@ -1,3 +1,0 @@
-api/
-postgres/
-  └── init.sql
