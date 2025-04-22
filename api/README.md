@@ -2,7 +2,79 @@
 
 This API is designed to support pluggable external Identity Providers (IdPs) such as LDAP/Active Directory, OpenLDAP, OAuth2, SAML, and OpenID Connect.
 
-## Database Support
+## New Functionality
+
+### Projects
+
+- **Create Project:**  
+  `POST /projects`  
+  Create a new project.
+
+- **List Projects:**  
+  `GET /projects`  
+  List all projects (optionally include inactive).
+
+- **Deactivate Project:**  
+  `DELETE /projects/{project_id}`  
+  Mark a project as inactive.
+
+- **Add Project Member:**  
+  `POST /project_members`  
+  Add a user to a project with a specific role.
+
+- **List Project Members:**  
+  `GET /project_members/{project_id}`  
+  List all members of a project.
+
+### Scans
+
+- **Create Scan:**  
+  `POST /scans`  
+  Create a new scan for a project.
+
+- **List Scans:**  
+  `GET /scans`  
+  List all scans (optionally filter by project, user, or scan type).
+
+- **Get Scan:**  
+  `GET /scans/{scan_id}`  
+  Retrieve a scan by ID.
+
+- **Update Scan:**  
+  `PUT /scans/{scan_id}`  
+  Update scan result or metadata.
+
+- **Delete Scan:**  
+  `DELETE /scans/{scan_id}`  
+  Mark a scan as inactive (soft delete).
+
+All scan endpoints require appropriate permissions.
+
+### Scan Types
+
+- **Create Scan Type:**  
+  `POST /scan_types`  
+  Create a new scan type.
+
+- **List Scan Types:**  
+  `GET /scan_types`  
+  List all scan types.
+
+- **Get Scan Type:**  
+  `GET /scan_types/{scan_type_id}`  
+  Retrieve a scan type by ID.
+
+- **Update Scan Type:**  
+  `PUT /scan_types/{scan_type_id}`  
+  Update a scan type.
+
+- **Delete Scan Type:**  
+  `DELETE /scan_types/{scan_type_id}`  
+  Delete a scan type.
+
+All scan type endpoints require appropriate permissions.
+
+---
 
 - The `users` table includes `external_id` and `idp_provider` columns to store references to external identities.
 - Added `api_keys` table for secure API key management with user-level and project-level keys.
