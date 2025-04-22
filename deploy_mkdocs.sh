@@ -49,7 +49,7 @@ docker run -d --name $CONTAINER_NAME \
 
 # Step 4: Configure Git and deploy
 echo "📢 Deploying documentation to GitHub Pages..."
-docker exec -it $CONTAINER_NAME sh -c "
+docker exec $CONTAINER_NAME sh -c "
   git config --global user.email '$GITHUB_EMAIL' &&
   git config --global user.name '$GITHUB_USERNAME' &&
   git remote set-url origin https://$GITHUB_TOKEN@github.com/$GITHUB_USERNAME/$REPO_NAME.git &&
