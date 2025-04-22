@@ -22,6 +22,8 @@ Welcome to the magllama project!
    # Edit .env as needed
    ```
 
+   - For production, set your `DATABASE_URL` to use a dedicated PostgreSQL user with only `SELECT`, `INSERT`, and `UPDATE` privileges (no `DELETE`, `ALTER`, or `TRUNCATE`). See the "Database" docs for details.
+
 3. **Start the services:**
    ```bash
    docker-compose up --build

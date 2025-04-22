@@ -151,10 +151,11 @@ The following placeholder endpoints are available for future implementation of I
 
 ## Configuration
 
-Environment variables should be set to configure the IdP integrations, for example:
+Environment variables should be set to configure the IdP integrations and database connection, for example:
 
 ```yaml
 environment:
+  - DATABASE_URL=postgresql://magllama_app:your_strong_password@db:5432/postgres
   - OAUTH2_CLIENT_ID=
   - OAUTH2_CLIENT_SECRET=
   - OAUTH2_PROVIDER_URL=
@@ -164,6 +165,13 @@ environment:
   - SAML_METADATA_URL=
   - SECRET_ENCRYPTION_KEY=  # Must be set to a base64-encoded Fernet key
 ```
+
+### Database Credentials and Permissions
+
+- **Use a dedicated PostgreSQL user for the API** with only `SELECT`, `INSERT`, and `UPDATE` privileges (no `DELETE`, `ALTER`, or `TRUNCATE`).
+- **Never use the superuser or default `postgres` user for the application.**
+- **All deletes are handled by setting `inactive_at` (soft delete).** The application user should not be able to physically delete or alter tables.
+- See `postgres/README.md` for SQL commands to create and grant the correct permissions to the application user.
 
 ## Next Steps
 
