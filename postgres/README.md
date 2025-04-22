@@ -83,3 +83,44 @@ This directory contains the database schema and initialization scripts for the m
 - All application-level "delete" operations should use this soft-delete pattern.
 - Never use `DELETE FROM ...` in application code.
 - For extra safety, you can add a trigger to each table to prevent physical deletes (see above).
+
+---
+
+## Creating a Dedicated PostgreSQL User for the Application
+
+For security, it is recommended to create a dedicated PostgreSQL user for the magllama application with only the necessary permissions.
+
+### Example: Create User and Grant Permissions
+
+```sql
+-- Connect as a superuser (e.g. postgres)
+CREATE USER magllama_app WITH PASSWORD 'your_strong_password';
+
+-- Grant CONNECT and USAGE on the database and schema
+GRANT CONNECT ON DATABASE postgres TO magllama_app;
+GRANT USAGE ON SCHEMA public TO magllama_app;
+
+-- Grant SELECT, INSERT, UPDATE on all tables (but not DELETE or ALTER)
+GRANT SELECT, INSERT, UPDATE ON ALL TABLES IN SCHEMA public TO magllama_app;
+
+-- Optionally, grant usage on sequences (for SERIAL/UUID columns)
+GRANT USAGE ON ALL SEQUENCES IN SCHEMA public TO magllama_app;
+
+-- Prevent ALTER and DELETE
+-- Do not grant ALTER or DELETE privileges.
+-- If you want to be extra strict, you can REVOKE them explicitly:
+REVOKE DELETE, TRUNCATE, ALTER ON ALL TABLES IN SCHEMA public FROM magllama_app;
+```
+
+**Note:**  
+- The application will not be able to drop, alter, or delete tables or rows.  
+- All "deletes" are handled by setting `inactive_at` (soft delete).
+- If you add new tables in the future, you may need to re-run the GRANT statements for those tables.
+
+### Connecting as the Application User
+
+Set your `DATABASE_URL` in `.env` to use the new user:
+
+```
+DATABASE_URL=postgresql://magllama_app:your_strong_password@db:5432/postgres
+```
