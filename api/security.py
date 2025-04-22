@@ -63,6 +63,7 @@ async def check_permission(user_id: uuid.UUID, permission_name: str, db):
     """
     result = await db.fetchrow(query, user_id, permission_name)
     if not result:
+        await log_activity(user_id, "permission_denied", {"permission": permission_name}, db)
         raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Permission denied")
 
 async def check_project_access(user_id: uuid.UUID, project_id: uuid.UUID, db, required_role: str = None):
@@ -80,6 +81,7 @@ async def check_project_access(user_id: uuid.UUID, project_id: uuid.UUID, db, re
         params.append(required_role)
     result = await db.fetchrow(query.format(role_clause=role_clause), *params)
     if not result:
+        await log_activity(user_id, "project_access_denied", {"project_id": str(project_id)}, db)
         raise HTTPException(status_code=403, detail="Access denied for this project")
 
 @router.post("/log_activity")

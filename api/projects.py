@@ -32,7 +32,8 @@ async def create_project(project: Project, user_id: uuid.UUID = Query(...), db=D
         return dict(row)
 
 @router.get("/projects", response_model=List[Project])
-async def list_projects(include_inactive: bool = False, db=Depends(get_db)):
+async def list_projects(include_inactive: bool = False, user_id: uuid.UUID = Query(...), db=Depends(get_db)):
+    await check_permission(user_id, "list_projects", db)
     query = "SELECT id, name, parent_id, description FROM projects"
     if not include_inactive:
         query += " WHERE inactive_at IS NULL"
@@ -45,6 +46,8 @@ async def deactivate_project(project_id: uuid.UUID, user_id: uuid.UUID = Query(.
     await check_permission(user_id, "deactivate_project", db)
     now = datetime.now(timezone.utc)
     async with db.acquire() as conn:
+        # Verify user has access to the project before deactivating
+        await check_project_access(user_id, project_id, db)
         await conn.execute(
             "UPDATE projects SET inactive_at = $1, inactivated_by = $2 WHERE id = $3",
             now, user_id, project_id
@@ -55,6 +58,8 @@ async def deactivate_project(project_id: uuid.UUID, user_id: uuid.UUID = Query(.
 @router.post("/project_members", response_model=ProjectMember)
 async def add_project_member(member: ProjectMember, user_id: uuid.UUID = Query(...), db=Depends(get_db)):
     await check_permission(user_id, "assign_project_role", db)
+    # Verify user has access to the project before adding members
+    await check_project_access(user_id, member.project_id, db)
     async with db.acquire() as conn:
         await conn.execute(
             "INSERT INTO project_members (project_id, user_id, role_id) VALUES ($1, $2, $3) ON CONFLICT DO NOTHING",
