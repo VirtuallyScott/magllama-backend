@@ -28,6 +28,9 @@ services:
       - "8000:8000"
     depends_on:
       - db
+    volumes:
+      - api_config:/app/config
 
 volumes:
   pgdata:
+  api_config:
