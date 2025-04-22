@@ -13,7 +13,8 @@ CREATE TABLE scans (
     user_id UUID REFERENCES users(id),
     scan_type TEXT NOT NULL,
     scan_result JSONB,
-    created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
+    project_id UUID REFERENCES projects(id)
 );
 
 CREATE TABLE artifacts (
@@ -21,5 +22,58 @@ CREATE TABLE artifacts (
     scan_id UUID REFERENCES scans(id),
     artifact_name TEXT NOT NULL,
     metadata JSONB,
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
+    project_id UUID REFERENCES projects(id)
+);
+
+-- Roles table
+CREATE TABLE roles (
+    id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+    name TEXT NOT NULL UNIQUE,
+    description TEXT
+);
+
+-- Permissions table
+CREATE TABLE permissions (
+    id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+    name TEXT NOT NULL UNIQUE,
+    description TEXT
+);
+
+-- Role-Permission mapping
+CREATE TABLE role_permissions (
+    role_id UUID REFERENCES roles(id),
+    permission_id UUID REFERENCES permissions(id),
+    PRIMARY KEY (role_id, permission_id)
+);
+
+-- User-Role mapping
+CREATE TABLE user_roles (
+    user_id UUID REFERENCES users(id),
+    role_id UUID REFERENCES roles(id),
+    PRIMARY KEY (user_id, role_id)
+);
+
+-- Activity log
+CREATE TABLE activity_logs (
+    id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+    user_id UUID REFERENCES users(id),
+    action TEXT NOT NULL,
+    details JSONB,
+    timestamp TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
+);
+
+CREATE TABLE projects (
+    id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+    name TEXT NOT NULL UNIQUE,
+    parent_id UUID REFERENCES projects(id),
+    description TEXT,
     created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
+);
+
+CREATE TABLE project_members (
+    project_id UUID REFERENCES projects(id),
+    user_id UUID REFERENCES users(id),
+    role_id UUID REFERENCES roles(id),
+    PRIMARY KEY (project_id, user_id)
 );
