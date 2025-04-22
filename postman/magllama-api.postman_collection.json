@@ -1,0 +1,59 @@
+{
+  "info": {
+    "name": "magllama API",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "item": [
+    {
+      "name": "Authenticate (Login)",
+      "request": {
+        "method": "POST",
+        "header": [
+          { "key": "Content-Type", "value": "application/json" }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\"username\": \"{{username}}\", \"password\": \"{{password}}\"}"
+        },
+        "url": {
+          "raw": "{{base_url}}/auth/login",
+          "host": ["{{base_url}}"],
+          "path": ["auth", "login"]
+        }
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "exec": [
+              "// Save token from response if your API returns one",
+              "var jsonData = pm.response.json();",
+              "if(jsonData.token){",
+              "    pm.environment.set('auth_token', jsonData.token);",
+              "}"
+            ],
+            "type": "text/javascript"
+          }
+        }
+      ]
+    },
+    {
+      "name": "Get Projects (Authenticated)",
+      "request": {
+        "method": "GET",
+        "header": [
+          { "key": "Authorization", "value": "Bearer {{auth_token}}" }
+        ],
+        "url": {
+          "raw": "{{base_url}}/projects?user_id={{user_id}}",
+          "host": ["{{base_url}}"],
+          "path": ["projects"],
+          "query": [
+            { "key": "user_id", "value": "{{user_id}}" }
+          ]
+        }
+      }
+    }
+    // Add more endpoints as needed, using {{auth_token}} for Authorization
+  ]
+}
