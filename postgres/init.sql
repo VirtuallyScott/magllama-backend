@@ -92,3 +92,7 @@ CREATE TABLE user_groups (
     group_id UUID REFERENCES groups(id),
     PRIMARY KEY (user_id, group_id)
 );
+
+ALTER TABLE users
+    ADD COLUMN IF NOT EXISTS external_id TEXT,
+    ADD COLUMN IF NOT EXISTS idp_provider TEXT;
