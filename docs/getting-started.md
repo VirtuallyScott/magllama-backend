@@ -30,7 +30,7 @@ Welcome to the magllama project!
    ```
 
 4. **Access the API:**
-   - The API will be available at `http://localhost:8000/`
+   - The API will be available at [http://localhost:8000/](http://localhost:8000/)
 
 5. **Run database migrations (if needed):**
    ```bash
@@ -38,4 +38,7 @@ Welcome to the magllama project!
    ```
 
 6. **Explore the API documentation:**
-   - Visit `http://localhost:8000/docs` for the OpenAPI UI.
+   - [Swagger UI (OpenAPI) docs](http://localhost:8000/docs)
+   - [ReDoc documentation](http://localhost:8000/redoc)
+   - [OpenAPI JSON schema](http://localhost:8000/openapi.json)
+   - Root endpoint: [http://localhost:8000/](http://localhost:8000/)

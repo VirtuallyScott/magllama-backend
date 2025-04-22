@@ -65,3 +65,10 @@ Group membership can be used to grant project access and permissions to all user
 
 - All endpoints require authentication and appropriate permissions.
 - See the OpenAPI docs at `/docs` for full details.
+
+## Default URLs
+
+- **API root:** [http://localhost:8000/](http://localhost:8000/)
+- **Swagger UI:** [http://localhost:8000/docs](http://localhost:8000/docs)
+- **ReDoc:** [http://localhost:8000/redoc](http://localhost:8000/redoc)
+- **OpenAPI JSON:** [http://localhost:8000/openapi.json](http://localhost:8000/openapi.json)

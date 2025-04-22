@@ -8,6 +8,13 @@ The recommended way to deploy magllama is with Docker Compose:
 docker-compose up --build -d
 ```
 
+## Default URLs
+
+- **API root:** [http://localhost:8000/](http://localhost:8000/)
+- **Swagger UI:** [http://localhost:8000/docs](http://localhost:8000/docs)
+- **ReDoc:** [http://localhost:8000/redoc](http://localhost:8000/redoc)
+- **OpenAPI JSON:** [http://localhost:8000/openapi.json](http://localhost:8000/openapi.json)
+
 ## Production Considerations
 
 - Set secure values in your `.env` file.
